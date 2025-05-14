@@ -3,3 +3,6 @@ node_modules/
 
 # ML models
 models/*
+
+# webpack dist
+dist/
