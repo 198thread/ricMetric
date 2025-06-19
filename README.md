@@ -61,6 +61,6 @@ It should be in this structure within the clone:
 
 4. npx webpack
 
-5. Navigate to about:debugging#/runtime/this-firefox and `Load temporary Add-on`. Find your newly created Add-on.
+5. Navigate to `about:debugging#/runtime/this-firefox` to `Load temporary Add-on` and add anything in the `dist` subfolder.
 
 6. Navigate to any bbc.com page where there are comments on a News Item
