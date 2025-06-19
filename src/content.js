@@ -1,7 +1,4 @@
-
 console.log("H E L L O   F R O M   C O N T E N T . J S")
-
-
 
 function edgeValues(element, values, useColor = true, factor = 0.5) {
   // Generate colors from the values
@@ -21,7 +18,7 @@ function edgeValues(element, values, useColor = true, factor = 0.5) {
   const gradientSteps = colors.map((color, index) => {
     const percent = (index / (colors.length - 1)) * 100;
     return `${color} ${percent}%`;
-  }).join(', ');
+  }).join(", ");
   
   // Calculate border width with factor
   const borderWidth = Math.max(1, Math.floor(10 * factor));
@@ -35,10 +32,10 @@ function edgeValues(element, values, useColor = true, factor = 0.5) {
   element.style.position = "relative";
   
   // Create or get the background element
-  let bgElement = element.querySelector('.edge-values-bg');
+  let bgElement = element.querySelector(".edge-values-bg");
   if (!bgElement) {
-    bgElement = document.createElement('div');
-    bgElement.className = 'edge-values-bg';
+    bgElement = document.createElement("div");
+    bgElement.className = "edge-values-bg";
     bgElement.style.position = "absolute";
     bgElement.style.top = "0";
     bgElement.style.left = "0";
@@ -63,50 +60,107 @@ function edgeValues(element, values, useColor = true, factor = 0.5) {
 
 
 function bbc_comment_pull() {
-
-  // every comment has a footer of id 'comment-footer-wrapper'
+  // every comment has a footer of id "comment-footer-wrapper"
   const commentFooters = document.querySelectorAll("div#comment-footer-wrapper");
 
   // these are the immediate div siblings with dynamic class names
   const precedingDivs = Array.from(commentFooters).map(footer => 
     footer.previousElementSibling
-  ).filter(el => el && el.tagName === 'DIV');
+  ).filter(el => el && el.tagName === "DIV").filter(comment => !comment.hasAttribute("data-sentiment-processed"));
 
   return precedingDivs;
 }
 
 
-
 function parse_bbc_comments() {
 
-  console.log("H E L L O   F R O M   P A R S E _ B B C _ C O M M E N T S");
+  const comments = bbc_comment_pull();
 
-  if (document.location.origin === "https://www.bbc.co.uk" && document.location.pathname.includes("/news/articles/")) {
-    // Pull each comment
-    const comments = bbc_comment_pull();
+  if (comments.length === 0) {
+    // console.log("No comments found")
+    return;
+  }
+  const textComments = comments.map((each) => each.innerHTML);
 
-    // Extract innerHTML from each comment
-    const textComments = comments.map((each) => each.innerHTML);
-
-    for (let [index, eachComment] of textComments.entries()) {
-      // Send comments to background script for processing
-      browser.runtime.sendMessage({ action: 'processComments', elements: [eachComment] }).then(response => {
-        if (response.success) {
-          const analysisObj = response.results[0]
-          // Note: textComments is an array of strings, not DOM elements
-          // You likely want to update the original comments array instead
-          edgeValues(comments[index], analysisObj.shift, analysisObj.sentimentStable);
-          // console.log(response.results);
-          // comments[index].textContent = response.results;
-        } else {
-          console.error("Error processing comments:", response.error);
-        }
-      }).catch(error => {
-        console.error("Message sending failed:", error);
-      });
+  for (let [index, eachComment] of textComments.entries()) {
+    const commentElement = comments.find(elem => elem.innerHTML === eachComment);
+    if (commentElement) {
+      console.log("sending");
+      startLoadingAnimation(commentElement);
+      send_to_bg(eachComment, commentElement, index);
     }
   }
 }
 
+function startLoadingAnimation(element) {
+  // First stop any existing animations
+  element.style.animation = "none";
+  element.offsetHeight;
+  
+  element.style.border = "4px solid white";
+  element.style.animation = "pulseBorder 1.5s infinite";
+  
+  let style = document.querySelector("#pulseAnimation");
+  if (style) {
+    document.head.removeChild(style);
+  }
+  
+  style = document.createElement("style");
+  style.id = "pulseAnimation";
+  style.textContent = `
+    @keyframes pulseBorder {
+      0% { border-color: white; }
+      50% { border-color:rgb(201, 233, 255); }
+      100% { border-color: white; }
+    }
+  `;
+  document.head.appendChild(style);
+}
 
-setTimeout(parse_bbc_comments, 5000);
+function send_to_bg(commentText, commentElement, index) {
+  browser.runtime.sendMessage({ 
+    action: "processComments", 
+    elements: commentText 
+  }).then(response => {
+    if (response.success) {
+      // Stop animation and remove border
+      commentElement.style.animation = "none";
+      commentElement.style.border = "none";
+      commentElement.offsetHeight;
+      
+      const analysisObj = response.results;
+      console.log(analysisObj);
+      edgeValues(commentElement, analysisObj.shift, analysisObj.sentimentStable);
+      
+      // Mark as processed
+      commentElement.setAttribute("data-sentiment-processed", "true");
+    } else {
+      console.error("Error processing comments:", response.error);
+      cleanupAnimation(commentElement);
+    }
+  }).catch(error => {
+    console.error("Message sending failed:", error);
+    cleanupAnimation(commentElement);
+  });
+}
+
+function cleanupAnimation(element) {
+  element.style.animation = "none";
+  element.style.border = "none";
+  element.offsetHeight;
+}
+
+
+
+
+
+// Create a mutation observer
+const observer = new MutationObserver((mutations) => {
+    parse_bbc_comments();
+});
+
+// Start observing the document with the configured parameters
+observer.observe(document.body, {
+    childList: true,
+    subtree: true
+});
