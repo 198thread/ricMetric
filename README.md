@@ -34,9 +34,9 @@ Analyse each comment:
 
 ### Installation
 
-1. git clone https://github.com/198thread/hys_inference
+1. git clone https://github.com/198thread/ricmetric
 
-2. Manually download the models from:
+2. Manually download the models and config files from:
 
     https://huggingface.co/Xenova/bge-base-en-v1.5
     
