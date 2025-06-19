@@ -25,7 +25,7 @@ Analyse each comment:
 
 2. Check for ranting. If clause-to-clause sentiment confidence is high, there's only one meaning from this text. 
 
-*Future*
+# *Future*
 
 - See if LLM's keyword-in-context is placed in same locations between different authors/possible sockpuppets, so 'detect LLM accent'
 
