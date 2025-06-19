@@ -12,7 +12,7 @@ Border indicates keyword spamming indicated via colours. Border indicates highly
 
 ### Layout
 
-Runs in gecko based-browsers. 
+Runs in Gecko based-browsers. Requires npm since you're building from source. 
 
 Analyse each comment:
 
@@ -57,6 +57,6 @@ It should be in this structure within the clone:
 
 4. npx webpack
 
-5. Firefox -> Manage extensions -> Debug Addons -> Add temporary addon and install the newly built addon in the `dist` subfolder
+5. Navigate to about:debugging#/runtime/this-firefox and `Load temporary Add-on`. Find your newly created Add-on.
 
 6. Navigate to any bbc.com page where there are comments on a News Item

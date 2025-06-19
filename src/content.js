@@ -1,19 +1,21 @@
 console.log("H E L L O   F R O M   C O N T E N T . J S")
 
 function edgeValues(element, values, useColor = true, factor = 0.5) {
+  
+
   // Generate colors from the values
   const colors = values.map(value => {
+    const normalizedValue = Math.max(0, Math.min(1, value));
+    
     if (useColor) {
-      // Color version - use HSL
-      const hue = Math.floor((value * 360 * (values.length)) % 360);
+      const hue = Math.floor((normalizedValue * 360 * (values.length)) % 360);
       return `hsl(${hue}, 70%, 50%)`;
     } else {
-      // Grayscale version - convert to brightness value
-      const brightness = Math.floor((value * 100) * values.length);
+      const brightness = Math.min(100, Math.floor((normalizedValue * 100) * values.length));
       return `rgb(${brightness}%, ${brightness}%, ${brightness}%)`;
     }
   });
-  
+
   // Create a linear gradient string
   const gradientSteps = colors.map((color, index) => {
     const percent = (index / (colors.length - 1)) * 100;
@@ -85,7 +87,6 @@ function parse_bbc_comments() {
   for (let [index, eachComment] of textComments.entries()) {
     const commentElement = comments.find(elem => elem.innerHTML === eachComment);
     if (commentElement) {
-      console.log("sending");
       startLoadingAnimation(commentElement);
       send_to_bg(eachComment, commentElement, index);
     }
@@ -129,7 +130,7 @@ function send_to_bg(commentText, commentElement, index) {
       commentElement.offsetHeight;
       
       const analysisObj = response.results;
-      console.log(analysisObj);
+      console.log(analysisObj.shift);
       edgeValues(commentElement, analysisObj.shift, analysisObj.sentimentStable);
       
       // Mark as processed

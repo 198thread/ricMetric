@@ -15,8 +15,8 @@ env.allowLocalModels = true;
 env.backends.onnx.wasm.wasmPaths = "/wasm/";
 
 // Load model
-const tBedder = await pipeline("feature-extraction", "Xenova/bge-base-en-v1.5", { pooling: "mean", dtype: "f32" });
-const tSent = await pipeline("text-classification", "Xenova/distilbert-base-uncased-finetuned-sst-2-english", { dtype: "f32" });
+const tBedder = await pipeline("feature-extraction", "Xenova/bge-base-en-v1.5", { dtype: "fp32" });
+const tSent = await pipeline("text-classification", "Xenova/distilbert-base-uncased-finetuned-sst-2-english", { dtype: "fp32" });
 
 
 // ---------------------------------------------------------------------------------- //
@@ -57,7 +57,7 @@ async function analyseParagraph(p) {
     .filter(Boolean);
 
     // embeddings: shape [n_clauses, hidden] – ready for cosine
-    const E = await tBedder(clauses); 
+    const E = await tBedder(clauses, { pooling: "mean" }); 
     const V = E.tolist();
 
     // cosine distance between successive clauses
