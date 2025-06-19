@@ -1,8 +1,6 @@
 ## HYS Inference
 
----
-
-#### Purpose
+### Purpose
 
 Coming across posts that feature rhetoric on BBC's HYS section, it should be easy to tag these, right?
 
@@ -12,7 +10,7 @@ Border indicates keyword spamming indicated via colours. Border indicates highly
 
 ---
 
-#### Layout
+### Layout
 
 Runs in gecko based-browsers. 
 
@@ -30,7 +28,7 @@ Analyse each comment:
 
 ---
 
-#### Installation
+### Installation
 
 1. git clone https://github.com/198thread/hys_inference
 
