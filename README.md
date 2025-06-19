@@ -10,9 +10,10 @@ Coming across posts that feature rhetoric on BBC's HYS section, it should be eas
 
 The comments show poor spelling, weird capitalisation and worst of all, rhetoric (hence the repo name, rheto**ric** metric). 
 
-Border indicates keyword spamming indicated via colours. Border indicates highly emotional text.
+Border colours fingerprint to keywords. If grayscale, it's only strongly worded.
 
-[!alt text](sample_output.png)
+![alt text](sample_output.png)
+---
 
 ### 🗺️ Layout
 
