@@ -1,16 +1,20 @@
-## HYS Inference
+### ⏰ WIP
 
-### Purpose
+️ *as of 19/06/25* will run once, then require browser restart. 
+---
 
-Coming across posts that feature rhetoric on BBC's HYS section, it should be easy to tag these, right?
+### 💡 Purpose
 
-⚠️ *as of 19/06/25* will run once, then require browser restart. 
+Coming across posts that feature rhetoric on BBC's HYS section, it should be easy to tag these... right?
+
+
+The comments show poor spelling, weird capitalisation and worst of all, rhetoric (hence the repo name, rheto**ric** metric). 
 
 Border indicates keyword spamming indicated via colours. Border indicates highly emotional text.
 
----
+[!alt text](sample_output.png)
 
-### Layout
+### 🗺️ Layout
 
 Runs in Gecko based-browsers. Requires npm since you're building from source. 
 
@@ -25,7 +29,6 @@ Analyse each comment:
 - See if LLM's keyword-in-context is placed in same locations between different authors/possible sockpuppets, so 'detect LLM accent'
 
 - See if same author/account has unsually wide embedding space layout, would indicate highly knowledgable user using keywords from all topics or possible account sharing.
-
 ---
 
 ### Installation
