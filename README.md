@@ -10,6 +10,8 @@ Coming across posts that feature rhetoric on BBC's HYS section, it should be eas
 
 Border indicates keyword spamming indicated via colours. Border indicates highly emotional text.
 
+---
+
 #### Layout
 
 Runs in gecko based-browsers. 
@@ -25,6 +27,8 @@ Analyse each comment:
     - See if LLM's keyword-in-context is placed in same locations between different authors/possible sockpuppets, so 'detect LLM accent'
 
     - See if same author/account has unsually wide embedding space layout, would indicate highly knowledgable user using keywords from all topics or possible account sharing.
+
+---
 
 #### Installation
 
