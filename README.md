@@ -34,7 +34,7 @@ Analyse each comment:
 
 ### Installation
 
-1. git clone https://github.com/198thread/ricmetric
+1. git clone https://github.com/198thread/ricMetric
 
 2. Manually download the models and config files from:
 
