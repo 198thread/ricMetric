@@ -18,27 +18,32 @@ Runs in gecko based-browsers.
 
 Analyse each comment:
 
-    1. Check for keyword spamming within every sucessive clause. If subclause embedding distance is high, that's spamming.
+1. Check for keyword spamming within every sucessive clause. If subclause embedding distance is high, that's spamming.
 
-    2. Check for ranting. If clause-to-clause sentiment confidence is high, there's only one meaning from this text. 
+2. Check for ranting. If clause-to-clause sentiment confidence is high, there's only one meaning from this text. 
 
-    *Future*
+*Future*
 
-    - See if LLM's keyword-in-context is placed in same locations between different authors/possible sockpuppets, so 'detect LLM accent'
+- See if LLM's keyword-in-context is placed in same locations between different authors/possible sockpuppets, so 'detect LLM accent'
 
-    - See if same author/account has unsually wide embedding space layout, would indicate highly knowledgable user using keywords from all topics or possible account sharing.
+- See if same author/account has unsually wide embedding space layout, would indicate highly knowledgable user using keywords from all topics or possible account sharing.
 
 ---
 
 #### Installation
 
-    1. `git clone https://github.com/198thread/hys_inference`
+1. git clone https://github.com/198thread/hys_inference
 
-    2. Manually download the models from [Xenova/bge-base-en-v1.5](https://huggingface.co/Xenova/bge-base-en-v1.5) and [Xenova/distilbert-base-uncased-finetuned-sst-2-english](https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english) as using git won't work
+2. Manually download the models from:
 
-    It should be in this structure within the clone:
+    https://huggingface.co/Xenova/bge-base-en-v1.5
+    
+    https://huggingface.co/Xenova/distilbert-base-uncased-finetuned-sst-2-english
+    
+    Using git won't work.
 
-    `
+It should be in this structure within the clone:
+
     - README.md
     - package.json
     - package-lock.json
@@ -49,10 +54,9 @@ Analyse each comment:
                 - onnx
             - distilbert-base-uncased-finetuned-sst-2-english
                 - onnx
-    `
 
-    3. `npm install`
+3. npm install
 
-    4. `npx webpack`
+4. npx webpack
 
-    5. install the temporary addon newly built in the `dist` subfolder
+5. Firefox -> Manage extensions -> Debug Addons -> Add temporary addon and install the newly built addon in the `dist` subfolder
