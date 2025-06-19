@@ -1,6 +1,6 @@
 ### ⏰ WIP
 
-️ *as of 19/06/25* will run once, then require browser restart. 
+*as of 19/06/25* will run once, then require browser restart. 
 ---
 
 ### 💡 Purpose
