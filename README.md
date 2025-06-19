@@ -60,3 +60,5 @@ It should be in this structure within the clone:
 4. npx webpack
 
 5. Firefox -> Manage extensions -> Debug Addons -> Add temporary addon and install the newly built addon in the `dist` subfolder
+
+6. Navigate to any bbc.com page where there are comments on a News Item
