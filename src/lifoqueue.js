@@ -1,4 +1,3 @@
-// lifoQueue.js
 export class LIFOQueue {
     constructor() {
         this.stack = [];

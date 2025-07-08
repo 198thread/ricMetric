@@ -1,104 +1,261 @@
-import { env, pipeline, cos_sim } from "@huggingface/transformers";
-import { lifoQueue } from "./lifoqueue"; // WARN: Singleton
+console.log("H E L L O   F R O M   B A C K G R O U N D . J S")
 
-// Specify a custom location for models (defaults to '/models/').
-env.localModelPath = "/models/";
+const TIMEOUT_MS = (9*60000); // 9 minutes
+const pendingResponses = new Map();
+let messageCounter = 0;
+let mlWorker = null;
 
-// Disable caching attempts for extension URLs
-env.useBrowserCache = false;
+async function ensureWorker() {
+  try {
+    if (!mlWorker || mlWorker.terminated) {
+      console.log("Creating/recreating ML worker");
+      mlWorker = new Worker(new URL("./ml-worker.js", import.meta.url));
+      
+      // Wait for worker to initialise
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error("Worker initialisation timeout"));
+        }, 30000); // 30 second timeout
 
-// Disable the loading of remote models from the Hugging Face Hub:
-env.allowRemoteModels = false;
-env.allowLocalModels = true;
+        mlWorker.onmessage = (event) => {
+          if (event.data.type === "initialised") {
+            clearTimeout(timeout);
+            setupWorkerHandlers();
+            resolve();
+          }
+        };
 
-// Set location of .wasm files to your extension's directory
-env.backends.onnx.wasm.wasmPaths = "/wasm/";
-
-// Load model
-const tBedder = await pipeline("feature-extraction", "Xenova/bge-base-en-v1.5", { dtype: "fp32" });
-const tSent = await pipeline("text-classification", "Xenova/distilbert-base-uncased-finetuned-sst-2-english", { dtype: "fp32" });
-
-
-// ---------------------------------------------------------------------------------- //
-//                                                                                    // 
-//                         END OF BACKGROUND LOADING PROCEDURE                        //
-//                                                                                    // 
-// ---------------------------------------------------------------------------------- //
-
-
-
-
-
-// TODO: Move to own func
-    // TODO: See if needed
-    // TODO: if synthetic, keyword positions would be mirrored by LLM's accent, clause-to-clause
-    // try {
-    //   await keywordPositionValuation(clauses)
-    //     .then(kPV => {
-    //       // console.log(kPV);
-    //     })
-    //     .catch(error => {
-    //       console.log(error);
-    //     });
-    // } catch (error) {
-    //   console.log(error);
+        mlWorker.onerror = (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        };
+      });
+      
+      console.log("ML worker initialised successfully");
+    }
+  } catch (error) {
+    console.error("Failed to initialise worker:", error);
+    mlWorker = null;
+    throw error;
+  }
+}
 
 
 
+function setupWorkerHandlers() {
+  mlWorker.onerror = (error) => {
+    console.error("Worker error:", error);
+    handleWorkerFailure(error);
+  };
+  
+  mlWorker.onmessage = handleWorkerMessage;
+}
 
+function handleWorkerFailure(error) {
+  for (const [id, { reject, timeoutId }] of pendingResponses) {
+    clearTimeout(timeoutId);
+    reject(new Error("Worker crashed: " + error.message));
+    pendingResponses.delete(id);
+  }
+  mlWorker = null;
+}
 
-async function analyseParagraph(p) {
-  // Trying to find keyword spamming + rhetorical tone
-  return lifoQueue.addTask(async () => {
+function validateMessage(message) {
+  if (!message.elements || typeof message.elements !== "string") {
+    throw new Error("Invalid message format: elements must be a string");
+  }
+  if (message.elements.length > 50000) { // arbitrary character limit
+    throw new Error("Text too long to process");
+  }
+}
 
-    // split on clauses
-    const clauses = p.split(/<br>|(?=[\.;:,!?\(\)\[\]\{\}…\—\–\-])|(?=\b(and|but|or|nor|for|so|yet|because|although|though|since|unless|until|while|whereas|if|then|however|therefore|moreover|furthermore|consequently|nevertheless|otherwise|meanwhile|alternatively|additionally|finally|subsequently|similarly|instead|thus|hence|accordingly|conversely|as|when|where|which|who|whom|whose|what|whatever|whenever|wherever|whether|why|how|before|after|during|through|throughout|despite|in\s+spite\s+of|rather\s+than|even\s+though|even\s+if|as\s+if|as\s+though|in\s+order\s+to|so\s+that|provided\s+that|assuming\s+that|given\s+that)\s+(I|you|he|she|it|we|they|this|that|these|those|my|your|his|her|its|our|their|the|a|an|any|some|many|much|each|every|all|both|neither|either|one|two|three|four|five|six|seven|eight|nine|ten|most|several|few|little|other|another|such|no|there|here|someone|somebody|something|anyone|anybody|anything|everyone|everybody|everything|no\s+one|nobody|nothing|nowhere|somewhere|everywhere|anywhere|whoever|whatever|whichever|whenever|wherever|however)(\b|\s+|$))/gi)
-    .map(s => s ? s.trim() : '')
-    .filter(Boolean);
+function createTask(resolve, reject) {
+  const messageId = messageCounter++;
+  const timeoutId = setTimeout(() => {
+    if (pendingResponses.has(messageId)) {
+      console.error("Task timed out:", messageId);
+      pendingResponses.get(messageId).reject(new Error("Processing timeout"));
+      pendingResponses.delete(messageId);
+    }
+  }, TIMEOUT_MS);
 
-    // embeddings: shape [n_clauses, hidden] – ready for cosine
-    const E = await tBedder(clauses, { pooling: "mean" }); 
-    const V = E.tolist();
-
-    // cosine distance between successive clauses
-    // high = topic jump 
-    // irrational discussion / keyword spamming
-    const shift = V.slice(1).map((v,i) => 1 - cos_sim(V[i], v));  
-
-    // sentiment labels with over 80% confidence returning true
-    const sLabels = (await tSent(clauses)).map(r => r.score >= 0.8);
-
-    // sentiment stable = matched to model/rhetorical tone
-    // fist pounding / angry Hank Hill shouting over garden fence
-    return { sentimentStable: new Set(sLabels).size === 1 , shift };
+  pendingResponses.set(messageId, { 
+    resolve, 
+    reject,
+    timeoutId,
+    startTime: Date.now()
   });
-};
+
+  return messageId;
+}
 
 
+function handleWorkerMessage(event) {
+  if (event.data.type === "initialised") {
+    // Handle initialization
+    clearTimeout(initTimeout);
+    initResolve();
+    return;
+  }
+  
+  const { id, error, results } = event.data;
+  console.log("Received worker response for ID:", id);
+  
+  const pending = pendingResponses.get(id);
+  if (pending) {
+    clearTimeout(pending.timeoutId);
+    
+    if (error) {
+      pending.reject(error);
+    } else {
+      pending.resolve({ success: true, results });
+    }
+    pendingResponses.delete(id);
+  } else {
+    console.warn("Received response for unknown task:", id);
+  }
+}
+
+
+function cleanupTimedOutTasks() {
+  const now = Date.now();
+  for (const [id, { timeoutId, startTime }] of pendingResponses) {
+    if (now - startTime > TIMEOUT_MS) {
+      clearTimeout(timeoutId);
+      pendingResponses.delete(id);
+      console.warn("Cleaned up stale task:", id);
+    }
+  }
+}
+
+// Initialise worker
+ensureWorker().catch(error => {
+  console.error("Initial worker setup failed:", error);
+});
+
+// Handle messages from content scripts
 browser.runtime.onMessage.addListener((message, sender) => {
+  console.log("Received message in background:", message);
+  
   if (message.action === "processComments") {
     if (message.elements) {
-      // For Firefox, we need to return a Promise
-      return Promise.resolve(analyseParagraph(message.elements))
-        .then(results => {
-          return { success: true, results: results };
-        })
-        .catch(error => {
-          console.error("Error processing comments:", error);
-          return { success: false, error: error.message };
-        });
+      return new Promise(async (resolve, reject) => {
+        try {
+          validateMessage(message);
+          
+          // Ensure worker is available
+          await ensureWorker();
+          
+          const messageId = createTask(resolve, reject);
+          console.log("Created task ID:", messageId);
+          
+          mlWorker.postMessage({
+            id: messageId,
+            type: "analyse",
+            data: message.elements
+          });
+          
+          console.log("Task sent to worker:", messageId);
+          
+        } catch (error) {
+          console.error("Error processing message:", error);
+          reject(error);
+        }
+      });
     } else {
       return Promise.resolve({ 
         success: false, 
-        error: "Expected 'elements' to be an array of comment strings" 
+        error: "Expected 'elements' to be present in message" 
       });
     }
   }
-  
-  // Return undefined for unhandled messages
   return undefined;
 });
 
+// Service worker lifecycle
+self.addEventListener("activate", (event) => {
+  console.log("Service worker activated");
+});
 
+self.addEventListener("install", (event) => {
+  console.log("Service worker installed");
+});
 
-console.log("H E L L O   F R O M   B A C K G R O U N D . J S")
+// Connection handler for all content.js connections
+browser.runtime.onConnect.addListener(port => {
+  console.log("Content script connected");
+  
+  // Immediately notify this connection that we're ready
+  try {
+    port.postMessage({ type: "service-worker-ready" });
+  } catch (e) {
+    console.log("Couldn't send ready message to port");
+  }
+  
+  port.onMessage.addListener(msg => {
+    if (msg.type === "heartbeat") {
+      try {
+        port.postMessage({ type: "heartbeat-response" });
+      } catch (e) {
+        console.log("Couldn't send heartbeat response");
+      }
+    }
+  });
+
+  port.onDisconnect.addListener(() => {
+    console.log("Content script disconnected");
+  });
+});
+
+// Function to notify content scripts
+async function notifyContentScripts() {
+  try {
+    const tabs = await browser.tabs.query({});
+    for (const tab of tabs) {
+      try {
+        if (tab.url && tab.url.startsWith('http')) {
+          await browser.tabs.sendMessage(tab.id, { 
+            type: "service-worker-ready" 
+          }).catch(() => {
+            // Silently ignore tabs that don't have our content script
+          });
+        }
+      } catch (e) {
+        console.log(`Couldn't notify tab ${tab.id}`);
+      }
+    }
+  } catch (e) {
+    console.error("Error notifying tabs:", e);
+  }
+}
+
+// Periodic maintenance
+setInterval(async () => {
+  try {
+    if (mlWorker) {
+      mlWorker.postMessage({ type: "ping" });
+    } else {
+      await ensureWorker();
+    }
+    cleanupTimedOutTasks();
+  } catch (error) {
+    console.error("Maintenance error:", error);
+  }
+}, 5000);
+
+// Initial notification to content scripts
+notifyContentScripts();
+
+// Graceful shutdown
+browser.runtime.onSuspend.addListener(() => {
+  console.log("Service worker suspending");
+  if (mlWorker) {
+    mlWorker.terminate();
+    mlWorker = null;
+  }
+  for (const [id, { reject, timeoutId }] of pendingResponses) {
+    clearTimeout(timeoutId);
+    reject(new Error("Service worker suspending"));
+    pendingResponses.delete(id);
+  }
+});

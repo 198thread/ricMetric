@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "staxon",
+  "name": "RicMetric",
   "version": "1.0",
   "permissions": ["scripting", "activeTab", "storage"],
   "background": {
@@ -17,7 +17,7 @@
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
   "web_accessible_resources": [{
-    "resources": ["models/*", "wasm/*"],
+    "resources": ["models/*", "wasm/*", "ml-worker.js"],
     "matches": ["<all_urls>"]
   }]
 }
