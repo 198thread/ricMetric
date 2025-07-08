@@ -1,6 +1,13 @@
 ### ⏰ WIP
 
-*as of 19/06/25* will run once, then require browser restart. 
+Operational - added ML-worker and keepalive functions (needed for MV3 on Gecko)
+
+Requires new data for tweaking and 
+
+Refactoring needed
+- moving connection handling into a modular template.
+- LIFOQueue to operate like a set, where most recent updates are kept.
+
 ---
 
 ### 💡 Purpose

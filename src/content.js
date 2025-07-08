@@ -5,6 +5,7 @@ let port;
 let mlWorkerPulse = true;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 3;
+let intersectionObserver
 
 function setupConnection() {
     if (!mlWorkerPulse) return;
@@ -39,6 +40,30 @@ const heartbeatInterval = setInterval(() => {
     }
 }, 5000);
 
+function setupIntersectionObserver() {
+    intersectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const commentElement = entry.target;
+                
+                if (!commentElement.hasAttribute("data-sentiment-processed") && 
+                    !commentElement.hasAttribute("data-sentiment-failed") &&
+                    !commentElement.hasAttribute("data-sentiment-processing")) {
+                    
+                    startLoadingAnimation(commentElement);
+                    send_to_bg(commentElement.innerHTML, commentElement);
+                }
+                
+                // Stop observing once we've started processing
+                intersectionObserver.unobserve(commentElement);
+            }
+        });
+    }, {
+        root: null, // use viewport
+        rootMargin: '100px', // start processing when comment is 100px from viewport
+        threshold: 0.1 // trigger when 10% visible
+    });
+}
 
 function edgeValues(element, values, useColor = true, factor = 0.5) {
   // Generate colors from the values
@@ -105,6 +130,10 @@ function parse_bbc_comments() {
 
     if (comments.length === 0) {
         return;
+    }
+
+    if (!intersectionObserver) {
+        setupIntersectionObserver();
     }
 
     comments.forEach((commentElement, index) => {
@@ -251,6 +280,12 @@ browser.runtime.onMessage.addListener((message) => {
         mlWorkerPulse = true;
         reconnectAttempts = 0;
         setupConnection();
+
+        if (intersectionObserver) {
+            intersectionObserver.disconnect();
+        }
+        setupIntersectionObserver();
+
         observer.observe(document.body, {
             childList: true,
             subtree: true,
@@ -267,6 +302,9 @@ parse_bbc_comments();
 window.addEventListener('unload', () => {
     if (port) {
         port.disconnect();
+    }
+    if (intersectionObserver) {
+        intersectionObserver.disconnect();
     }
     observer.disconnect();
 });
